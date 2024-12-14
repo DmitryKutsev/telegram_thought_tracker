@@ -99,18 +99,18 @@ class DatabaseConnector:
 
 # Example usage (unchanged)
 # if __name__ == "__main__":
-    # db_connector = DatabaseConnector()
+# db_connector = DatabaseConnector()
 
-    # db_connector.add_thought(123, "Dima", "This is my first thought.", "dream")
-    # db_connector.add_thought(123, "Dima", "Another thought here.", "thought")
-    # #     db_connector.add_thought(456, "Dima", "A thought from another user.")
+# db_connector.add_thought(123, "Dima", "This is my first thought.", "dream")
+# db_connector.add_thought(123, "Dima", "Another thought here.", "thought")
+# #     db_connector.add_thought(456, "Dima", "A thought from another user.")
 
-    # last_thoughts_user_123 = db_connector.get_last_thoughts(123)
-    # for thought in last_thoughts_user_123:
-    #     print(
-    #         f"User ID: {thought.user_tg_id}, Username: {thought.username}"
-    #         f"Time: {thought.datetime}  Type: {thought.type}, Text: { thought.text}"
-    #     )
+# last_thoughts_user_123 = db_connector.get_last_thoughts(123)
+# for thought in last_thoughts_user_123:
+#     print(
+#         f"User ID: {thought.user_tg_id}, Username: {thought.username}"
+#         f"Time: {thought.datetime}  Type: {thought.type}, Text: { thought.text}"
+#     )
 
 #     # Simulate large db to test cleanup
 #     for i in range(2000):

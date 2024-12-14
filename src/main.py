@@ -86,7 +86,9 @@ async def response_all(update: Update, context: CallbackContext) -> None:
     curr_type = llm_controller.classify_text(text)
 
     db_connector.add_thought(user_id, username, text, curr_type)
-    my_response = f"{curr_type.upper()} with content: {text} from {username} added to DB"
+    my_response = (
+        f"{curr_type.upper()} with content: {text} from {username} added to DB"
+    )
     print(my_response)
 
     await context.bot.send_message(
