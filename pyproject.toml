@@ -1,0 +1,18 @@
+[project]
+name = "telegram-thought-tracker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-generativeai>=0.8.3",
+    "loguru>=0.7.3",
+    "openai>=1.57.3",
+    "pydantic-settings>=2.7.0",
+    "pydantic>=2.10.3",
+    "python-telegram-bot>=21.9",
+    "pyyaml>=6.0.2",
+    "sqlalchemy>=2.0.36",
+    "telegram>=0.0.1",
+    "together>=1.3.5",
+]
