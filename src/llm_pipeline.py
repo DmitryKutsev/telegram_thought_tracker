@@ -1,9 +1,12 @@
+import os
+
+from dotenv import load_dotenv
 from openai import OpenAI
 from together import Together
-import os
 
 from prompts_config import my_prompts
 
+load_dotenv() # TODO: replace with settings
 
 # TODO: put in settings config ASAP
 TOGETHER_MODELS_LIST = [
