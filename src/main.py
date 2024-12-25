@@ -89,7 +89,6 @@ async def response_all(update: Update, context: CallbackContext) -> None:
     my_response = (
         f"{curr_type.upper()} with content: {text} from {username} added to DB"
     )
-    print(my_response)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"

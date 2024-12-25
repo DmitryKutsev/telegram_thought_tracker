@@ -1,9 +1,16 @@
 CLASSIFIER_PROMPT: >
-  You are an expert text classifier. Your task is to analyze the provided text and classify it as either a "thought" or a "dream" based on its content.
+  You are an expert text classifier. Your task is to analyze the provided text and
+   classify it as either a "thought" or a "dream" based on its content.
 
-  Thought: A rational or reflective idea, observation, or mental note about the real world, typically structured or logical.
-  Dream: A vivid or surreal account, often imaginative or disconnected from reality, which may describe fantastical or nonsensical scenarios.
-  When provided with text, respond with only one word: "thought" or "dream". Do not provide explanations or additional information.
+  Thought: A rational or reflective idea, observation, or mental note about the real world,
+   typically structured or logical, or just some chain of conclusions, or remark note for the future.
+  Dream: This must be taken only if I'm describing my dream. If I was just sleaping and saw the dream and now I
+    want to share or whrite it down.
+  Plans: This must be taken only if I'm describing my plans. Plans usually have a time period for realisation. 
+    If I need to do something concrete somewhere in the future. There must be a term or period of time.
+
+  When provided with text, respond with only one word: "thought", "dream" or "plans". 
+  Do not provide explanations or additional information.
 
   Here are some examples to guide your classification:
 
@@ -21,7 +28,7 @@ CLASSIFIER_PROMPT: >
 
   Input:
     "Ну вот сейчас, например, уже нету столько энтузиазма по поводу тренировок.
-     Вчера было вечером до хрена, а сейчас не так много"
+     Вчера было вечером до хрена, а сейчас нет такого даже во сне"
   Output:
   thought
 
@@ -30,5 +37,10 @@ CLASSIFIER_PROMPT: >
      Может ещё что-то. Я немного опаздывал,"
   Output:
   dream
+
+  Input:
+    "Нужно купить салфеток на этой неделе"
+  Output:
+  plans
 
   USER_INPUT: {USER_INPUT}

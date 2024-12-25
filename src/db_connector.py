@@ -22,7 +22,7 @@ class Thought(Base):
     user_tg_id = Column(Integer, nullable=False)
     username = Column(Text)
     text = Column(Text)
-    type = Column(Enum("dream", "thought"))
+    type = Column(Enum("dream", "thought", "plans"))
 
 
 class DatabaseConnector:
@@ -92,6 +92,32 @@ class DatabaseConnector:
             return thoughts
         except Exception as e:
             logger.error(f"Error getting last thoughts: {e}")
+            return []
+        finally:
+            session.close()
+
+    def get_thoughts_by_type_and_date(self, type, start_date, end_date):
+        """
+        Retrieve thoughts filtered by type and a date range.
+        
+        :param type: The type of thoughts to retrieve ("dream", "thought", "plans").
+        :param start_date: Start of the date range (datetime object).
+        :param end_date: End of the date range (datetime object).
+        :return: List of thoughts matching the criteria.
+        """
+        session = self.Session()
+        try:
+            thoughts = (
+                session.query(Thought)
+                .filter(Thought.type == type)
+                .filter(Thought.datetime >= start_date)
+                .filter(Thought.datetime <= end_date)
+                .order_by(Thought.datetime.desc())
+                .all()
+            )
+            return thoughts
+        except Exception as e:
+            logger.error(f"Error retrieving thoughts by type and date range: {e}")
             return []
         finally:
             session.close()

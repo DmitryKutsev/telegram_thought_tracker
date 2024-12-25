@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -56,3 +57,71 @@ class LlmController:
 
         os.remove(temp_path)
         return transcription.text
+
+
+    def summarize_entries(self, session, params: dict):
+        """
+        Retrieve and summarize dreams or thoughts for a user within a certain period.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            params (dict): Dictionary containing the following keys:
+                - user_tg_id (int): Telegram user ID to filter entries.
+                - entry_type (str): Either "dream", "thought" or "plans".
+                - start_date (datetime, optional): Start date for filtering entries. Defaults to None (no filter).
+                - end_date (datetime, optional): End date for filtering entries. Defaults to None (no filter).
+
+        Returns:
+            str: A summary of the entries.
+        """
+        user_tg_id = params.get("user_tg_id")
+        entry_type = params.get("entry_type")
+        start_date = params.get("start_date", datetime.min)
+        end_date = params.get("end_date", datetime.utcnow)
+
+        if entry_type not in ["dream", "thought", "plans"]:
+            raise ValueError("entry_type must be either 'dream' or 'thought'")
+
+        # Query the database for the relevant entries
+        entries = (
+            session.query(Thought.text)
+            .filter(
+                and_(
+                    Thought.user_tg_id == user_tg_id,
+                    Thought.type == entry_type,
+                    Thought.datetime >= start_date,
+                    Thought.datetime <= end_date,
+                )
+            )
+            .all()
+        )
+
+        # Extract texts from query results
+        texts = [entry.text for entry in entries]
+
+        if not texts:
+            return f"No {entry_type}s found for the specified period."
+
+        # Prepare the prompt for summarization
+        prompt = (
+            f"You are an expert text summarizer. Below are multiple {entry_type}s written by a user. "
+            f"Please provide a concise and meaningful summary of these {entry_type}s:"
+                + "\n\n".join(texts)
+            )
+
+        # Example of using a language model for summarization (e.g., OpenAI GPT)
+        # Replace `your_gpt_summarization_function` with the actual function you use to call the model
+        summary = your_gpt_summarization_function(prompt)
+
+        return summary
+
+# Example usage (assuming you have a valid SQLAlchemy session):
+# session = Session(bind=engine)
+# params = {
+#     "user_tg_id": 12345,
+#     "entry_type": "dream",
+#     "start_date": datetime(2024, 1, 1),
+#     "end_date": datetime(2024, 12, 31)
+# }
+# summary = summarize_entries(session, params)
+# print(summary)
