@@ -99,7 +99,7 @@ class DatabaseConnector:
     def get_thoughts_by_type_and_date(self, type, start_date, end_date):
         """
         Retrieve thoughts filtered by type and a date range.
-        
+
         :param type: The type of thoughts to retrieve ("dream", "thought", "plans").
         :param start_date: Start of the date range (datetime object).
         :param end_date: End of the date range (datetime object).
@@ -115,7 +115,23 @@ class DatabaseConnector:
                 .order_by(Thought.datetime.desc())
                 .all()
             )
-            return thoughts
+
+            if not thoughts:
+                my_response = "No {type} found from {start_date} to {end_date}"
+            else:
+                my_response = (
+                    f"<b>Here are your {type} from {start_date} to {end_date}:</b>\n"
+                )
+
+                for thought in thoughts:
+                    my_response += (
+                        f"<b>User:</b> {thought.username}\n"
+                        f"<b>Date:</b> {thought.datetime.strftime('%Y-%m-%d')}\n"
+                        f"<b>Type:</b> {thought.type}\n"
+                        f"<b>Text:</b> {thought.text}\n\n"
+                    )
+
+            return my_response
         except Exception as e:
             logger.error(f"Error retrieving thoughts by type and date range: {e}")
             return []
@@ -125,18 +141,33 @@ class DatabaseConnector:
 
 # Example usage (unchanged)
 # if __name__ == "__main__":
-# db_connector = DatabaseConnector()
+#     db_connector = DatabaseConnector()
 
 # db_connector.add_thought(123, "Dima", "This is my first thought.", "dream")
 # db_connector.add_thought(123, "Dima", "Another thought here.", "thought")
 # #     db_connector.add_thought(456, "Dima", "A thought from another user.")
 
-# last_thoughts_user_123 = db_connector.get_last_thoughts(123)
+# last_thoughts_user_123 = db_connector.get_last_thoughts(204039280)
 # for thought in last_thoughts_user_123:
 #     print(
-#         f"User ID: {thought.user_tg_id}, Username: {thought.username}"
-#         f"Time: {thought.datetime}  Type: {thought.type}, Text: { thought.text}"
+#         f"User ID: {thought.user_tg_id}, Username: {thought.username}\n"
+#         f"Time: {thought.datetime}  Type: {thought.type}, Text: { thought.text} "
+#         f"Time: {thought.datetime.strftime("%Y-%m-%d") >= "2024-11-24"} "
 #     )
+
+# retreived_thoughts = db_connector.get_thoughts_by_type_and_date(
+#     "thought", "2024-12-25", "2024-12-25"
+# )
+
+# thoughts_by_type_and_date = db_connector.get_thoughts_by_type_and_date(
+#         type="thought",
+#         start_date="2024-11-24",
+#         end_date="2024-12-24",
+#     )
+# print(thoughts_by_type_and_date)
+
+# for i in thoughts_by_type_and_date:
+#     print(i.text, i.user)
 
 #     # Simulate large db to test cleanup
 #     for i in range(2000):

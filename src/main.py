@@ -1,7 +1,6 @@
-import os
 import asyncio
+import os
 import tempfile
-
 
 from dotenv import load_dotenv
 from telegram import (
@@ -10,15 +9,14 @@ from telegram import (
     Update,
 )
 from telegram.ext import (
-    Updater,
     Application,
-    ContextTypes,
     CallbackContext,
+    ContextTypes,
     ConversationHandler,
     MessageHandler,
+    Updater,
     filters,
 )
-
 
 from db_connector import DatabaseConnector
 from llm_pipeline import LlmController
@@ -85,10 +83,18 @@ async def response_all(update: Update, context: CallbackContext) -> None:
     last_msg_lst[0] = text
     curr_type = llm_controller.classify_text(text)
 
-    db_connector.add_thought(user_id, username, text, curr_type)
-    my_response = (
-        f"{curr_type.upper()} with content: {text} from {username} added to DB"
-    )
+    if curr_type in ("dream", "thought", "plans"):
+        db_connector.add_thought(user_id, username, text, curr_type)
+        my_response = (
+            f"{curr_type.upper()} with content: {text} from {username} added to DB"
+        )
+    elif curr_type == "retreive":
+        query_params = llm_controller.retreive_thoughts(text)
+        my_response = db_connector.get_thoughts_by_type_and_date(
+            type=query_params.get("type"),
+            start_date=query_params.get("start_date"),
+            end_date=query_params.get("end_date"),
+        )
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"

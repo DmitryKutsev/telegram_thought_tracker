@@ -8,6 +8,8 @@ CLASSIFIER_PROMPT: >
     want to share or whrite it down.
   Plans: This must be taken only if I'm describing my plans. Plans usually have a time period for realisation. 
     If I need to do something concrete somewhere in the future. There must be a term or period of time.
+  Retreive: If I want to retreive some data like plans dream or thoughts from the data base for a specific 
+  period of time
 
   When provided with text, respond with only one word: "thought", "dream" or "plans". 
   Do not provide explanations or additional information.
@@ -42,5 +44,36 @@ CLASSIFIER_PROMPT: >
     "Нужно купить салфеток на этой неделе"
   Output:
   plans
+
+  Input:
+    "Нужно купить салфеток на этой неделе"
+  Output:
+  plans  
+  
+  Input:
+    "Покажи мне сны за сегодня"
+  Output:
+  retreive
+
+  USER_INPUT: {USER_INPUT}
+
+
+RETREIVER_PROMPT: > 
+  ROLE: You are JSON creator. You creates JSON string for rthe further parsing ith python according to the USER INPUT.
+
+  The JSON should include the following fields:
+    type: The type of thoughts to retrieve. It can be one of the following values: "dream", "thought", or "plans".
+    start_date: The start date for the range (inclusive) in %Y-%m-%d %H:%M:%Sformat.
+    end_date: The end date for the range (inclusive) in %Y-%m-%d %H:%M:%S format.
+    Requirements:
+    Ensure that the type is explicitly specified and matches one of the allowed values.
+    The start_date should represent the beginning of the time range, while the end_date should
+    represent the end of the time range.
+    Both dates must be in ISO 8601 format (%Y-%m-%d %H:%M:%S).
+    If any field is missing or incorrectly formatted, the system will not process the request.
+    No words "json" or something else inside of the string. It must not be a docstring, It must be ready for json.loads()
+    Example JSON string:
+
+    {{"type": "dream", "start_date": "2024-12-26 14:57:34", "end_date": "2024-12-26 14:57:34"}}
 
   USER_INPUT: {USER_INPUT}

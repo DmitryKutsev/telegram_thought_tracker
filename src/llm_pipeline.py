@@ -1,3 +1,4 @@
+import json
 import os
 import datetime
 
@@ -49,6 +50,27 @@ class LlmController:
             ],
         )
         return response.choices[0].message.content
+    
+    def retreive_thoughts(self, text) -> dict:
+        text = text + f" today date: {datetime.datetime.today()}"
+        curr_prompt = my_prompts.RETREIVER_PROMPT.format(USER_INPUT=text)
+        response = self.llm_client.chat.completions.create(
+            model=self.current_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": curr_prompt,
+                }
+            ],
+        )
+        my_response = response.choices[0].message.content
+
+        try:
+            query_params = json.loads(my_response)
+            return query_params
+        
+        except json.JSONDecodeError:
+            raise "Invalid JSON format."
 
     def transcribe_text(self, temp_path):
         transcription = openai_client.audio.transcriptions.create(

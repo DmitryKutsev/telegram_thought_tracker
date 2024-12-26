@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Prompts(BaseSettings):
     CLASSIFIER_PROMPT: str
+    RETREIVER_PROMPT: str
 
     @classmethod
     def from_yaml(cls, file_path: str):
