@@ -88,6 +88,11 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         my_response = (
             f"{curr_type.upper()} with content: {text} from {username} added to DB"
         )
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
+        )
+
     elif curr_type == "retreive":
         query_params = llm_controller.retreive_thoughts(text)
         my_response = db_connector.get_thoughts_by_type_and_date(
@@ -96,9 +101,10 @@ async def response_all(update: Update, context: CallbackContext) -> None:
             end_date=query_params.get("end_date"),
         )
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
-    )
+        for thought in my_response:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=thought, parse_mode="HTML"
+            )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

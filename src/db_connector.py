@@ -117,21 +117,23 @@ class DatabaseConnector:
             )
 
             if not thoughts:
-                my_response = "No {type} found from {start_date} to {end_date}"
+                my_response = ["No {type} found from {start_date} to {end_date}"]
             else:
-                my_response = (
+                my_response = [
                     f"<b>Here are your {type} from {start_date} to {end_date}:</b>\n"
-                )
+                ]
 
                 for thought in thoughts:
-                    my_response += (
+                    resp_string = (
                         f"<b>User:</b> {thought.username}\n"
                         f"<b>Date:</b> {thought.datetime.strftime('%Y-%m-%d')}\n"
                         f"<b>Type:</b> {thought.type}\n"
                         f"<b>Text:</b> {thought.text}\n\n"
                     )
+                    my_response.append(resp_string)
 
             return my_response
+        
         except Exception as e:
             logger.error(f"Error retrieving thoughts by type and date range: {e}")
             return []
