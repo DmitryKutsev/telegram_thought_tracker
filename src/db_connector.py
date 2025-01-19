@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Enum, Integer, Text, create_engine
+from sqlalchemy import Column, DateTime, Enum, Integer, Text, create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from config import settings
@@ -96,6 +96,43 @@ class DatabaseConnector:
         finally:
             session.close()
 
+    def execute_custom_query(self, query, params=None):
+        """
+        Execute a custom SQL query on the database.
+
+        :param query: The SQL query to execute.
+        :param params: Parameters to use in the query (optional).
+        :return: The result of the query as a list of rows (or None if an error occurs).
+        """
+        session = self.Session()
+        try:
+            thoughts = session.execute(text(query))
+
+            if not thoughts:
+                my_response = ["No information on query {query}"]
+            else:
+                my_response = [
+                    f"<b>Here is your data:</b>\n"
+                ]
+
+                for thought in thoughts:
+                    resp_string = (
+                        f"<b>User:</b> {thought.username}\n"
+                        f"<b>Date:</b> {thought.datetime}\n"
+                        f"<b>Type:</b> {thought.type}\n"
+                        f"<b>Text:</b> {thought.text}\n\n"
+                    )
+                    my_response.append(resp_string)
+
+            return my_response
+        
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error executing custom query: {e}")
+            return None
+        finally:
+            session.close()
+
     def get_thoughts_by_type_and_date(self, type, start_date, end_date):
         """
         Retrieve thoughts filtered by type and a date range.
@@ -140,11 +177,16 @@ class DatabaseConnector:
         finally:
             session.close()
 
-
-# Example usage (unchanged)
+# TODO: replace this with normal unit tests!!
 # if __name__ == "__main__":
-#     db_connector = DatabaseConnector()
-
+    # db_connector = DatabaseConnector()
+    
+    
+    # mystr = "SELECT * FROM thoughts"
+    # hrrr = db_connector.execute_custom_query(mystr)
+    # for i in hrrr:
+    #     print(i)
+        
 # db_connector.add_thought(123, "Dima", "This is my first thought.", "dream")
 # db_connector.add_thought(123, "Dima", "Another thought here.", "thought")
 # #     db_connector.add_thought(456, "Dima", "A thought from another user.")
@@ -157,20 +199,3 @@ class DatabaseConnector:
 #         f"Time: {thought.datetime.strftime("%Y-%m-%d") >= "2024-11-24"} "
 #     )
 
-# retreived_thoughts = db_connector.get_thoughts_by_type_and_date(
-#     "thought", "2024-12-25", "2024-12-25"
-# )
-
-# thoughts_by_type_and_date = db_connector.get_thoughts_by_type_and_date(
-#         type="thought",
-#         start_date="2024-11-24",
-#         end_date="2024-12-24",
-#     )
-# print(thoughts_by_type_and_date)
-
-# for i in thoughts_by_type_and_date:
-#     print(i.text, i.user)
-
-#     # Simulate large db to test cleanup
-#     for i in range(2000):
-#         db_connector.add_thought(999, "Dima", f"Test thought {i}")

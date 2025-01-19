@@ -51,6 +51,21 @@ class LlmController:
         )
         return response.choices[0].message.content
     
+    def retreive_custom_info(self, text):
+        text = text + f" today date: {datetime.datetime.today()}"
+        curr_prompt = my_prompts.CUSTOM_RETRIEVER_PROMPT.format(USER_INPUT=text)
+        response = self.llm_client.chat.completions.create(
+            model=self.current_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": curr_prompt,
+                }
+            ],
+        )
+        
+        return response.choices[0].message.content
+    
     def retreive_thoughts(self, text) -> dict:
         text = text + f" today date: {datetime.datetime.today()}"
         curr_prompt = my_prompts.RETREIVER_PROMPT.format(USER_INPUT=text)

@@ -8,8 +8,8 @@ CLASSIFIER_PROMPT: >
     want to share or whrite it down.
   Plans: This must be taken only if I'm describing my plans. Plans usually have a time period for realisation. 
     If I need to do something concrete somewhere in the future. There must be a term or period of time.
-  Retreive: If I want to retreive some data like plans dream or thoughts from the data base for a specific 
-  period of time
+  Retreive: If I want to retreive some data like plans dream or thoughts from the data base
+  
 
   When provided with text, respond with only one word: "thought", "dream" or "plans". 
   Do not provide explanations or additional information.
@@ -75,5 +75,40 @@ RETREIVER_PROMPT: >
     Example JSON string:
 
     {{"type": "dream", "start_date": "2024-12-26 14:57:34", "end_date": "2024-12-26 14:57:34"}}
+
+  USER_INPUT: {USER_INPUT}
+
+CUSTOM_RETRIEVER_PROMPT: > 
+  
+  You are JSON string creator. You are working with a database designed to manage user thoughts, dreams, and plans. 
+  Your format includes a table called thoughts with the following fields:
+
+  id: Unique identifier for each thought.
+  datetime: The date and time the thought was recorded.
+  user_tg_id: The Telegram ID of the user.
+  username: The username of the user.
+  text: The content of the thought.
+  type: The category of the thought, which can be dream, thought, or plans.
+  Use the examples below to perform common operations on the database. 
+  These queries are ready for execution. Replace placeholder values (like 12345, "dream", or specific dates) with the actual values you need.
+
+  Examples:
+
+  1. Retrieve the latest 5 thoughts of a user.
+  RESPONSE:
+  SELECT * FROM thoughts WHERE user_tg_id = 12345 ORDER BY datetime DESC LIMIT 5
+  2. Retrieve all entries of type dream within a date range.
+  RESPONSE:
+  SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' ORDER BY datetime DESC
+  5. Count the number of plans for a specific user:
+  RESPONSE:  "SELECT COUNT(*) FROM thoughts WHERE user_tg_id = 12345 AND type = 'dream'
+  6. Retrieve all unique users who have created dreams.
+  RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'dream'
+
+
+  Based on these examples, you can create or modify SQL queries to meet specific needs. Answer ONLY with the raw sql command
+  string. Strictly no other information about format or anything, raw request only. 
+  Dont mention sql format at the beggining of the string
+
 
   USER_INPUT: {USER_INPUT}

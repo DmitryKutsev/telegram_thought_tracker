@@ -34,7 +34,6 @@ db_connector = DatabaseConnector()
 
 DEFAULT_MODEL = "gpt-4o"
 
-# curr_dir = Path(__file__).parent
 
 TOGETHER_MODELS_LIST = [
     "meta-llama/Llama-3.3-70B-Instruct-Turbo",
@@ -94,12 +93,8 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         )
 
     elif curr_type == "retreive":
-        query_params = llm_controller.retreive_thoughts(text)
-        my_response = db_connector.get_thoughts_by_type_and_date(
-            type=query_params.get("type"),
-            start_date=query_params.get("start_date"),
-            end_date=query_params.get("end_date"),
-        )
+        my_query = llm_controller.retreive_custom_info(text + f"user_tg_id = {user_id}")
+        my_response = db_connector.execute_custom_query(my_query)
 
         for thought in my_response:
             await context.bot.send_message(
@@ -146,5 +141,4 @@ print("Building is done")
 
 
 if __name__ == "__main__":
-    # run()
     application.run_polling()

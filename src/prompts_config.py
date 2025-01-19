@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings
 class Prompts(BaseSettings):
     CLASSIFIER_PROMPT: str
     RETREIVER_PROMPT: str
-
+    CUSTOM_RETRIEVER_PROMPT: str
+    
     @classmethod
     def from_yaml(cls, file_path: str):
         with open(file_path, "r") as file:
