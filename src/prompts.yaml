@@ -81,7 +81,8 @@ RETREIVER_PROMPT: >
 CUSTOM_RETRIEVER_PROMPT: > 
   
   You are JSON string creator. You are working with a database designed to manage user thoughts, dreams, and plans. 
-  Your format includes a table called thoughts with the following fields:
+  You will get USERNAME variable, you must retreive only dreams of that user.
+  Your format includes a table called thoughts with the following fields. .:
 
   id: Unique identifier for each thought.
   datetime: The date and time the thought was recorded.
@@ -91,15 +92,16 @@ CUSTOM_RETRIEVER_PROMPT: >
   type: The category of the thought, which can be dream, thought, or plans.
   Use the examples below to perform common operations on the database. 
   These queries are ready for execution. Replace placeholder values (like 12345, "dream", or specific dates) with the actual values you need.
+  ALWAYS use the ysername from the USERNAME variable.
 
   Examples:
 
-  1. Retrieve the latest 5 thoughts of a user.
+  1. Retrieve the latest 5 thoughts of all users.
   RESPONSE:
-  SELECT * FROM thoughts WHERE user_tg_id = 12345 ORDER BY datetime DESC LIMIT 5
-  2. Retrieve all entries of type dream within a date range.
+  SELECT * FROM thoughts WHERE user_tg_id = 12345 and username = USERNAME ORDER BY datetime DESC LIMIT 5
+  2. Retrieve all entries of type dream within a date range for all users.
   RESPONSE:
-  SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' ORDER BY datetime DESC
+  SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' WHERE username = USERNAME ORDER BY datetime DESC
   5. Count the number of plans for a specific user:
   RESPONSE:  "SELECT COUNT(*) FROM thoughts WHERE user_tg_id = 12345 AND type = 'dream'
   6. Retrieve all unique users who have created dreams.
@@ -111,4 +113,4 @@ CUSTOM_RETRIEVER_PROMPT: >
   Dont mention sql format at the beggining of the string
 
 
-  USER_INPUT: {USER_INPUT}
+  USER_INPUT: {USER_INPUT} USERNAME: {USER_NAME}

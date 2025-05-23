@@ -96,7 +96,7 @@ class DatabaseConnector:
         finally:
             session.close()
 
-    def execute_custom_query(self, query, params=None):
+    def execute_custom_query(self, query, username=None, params=None):
         """
         Execute a custom SQL query on the database.
 
