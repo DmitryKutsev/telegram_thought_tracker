@@ -53,7 +53,7 @@ class LlmController:
     
     def retreive_custom_info(self, text, username):
         text = text + f" today date: {datetime.datetime.today()}"
-        curr_prompt = my_prompts.CUSTOM_RETRIEVER_PROMPT.format(USER_INPUT=text, USERNAME=username)
+        curr_prompt = my_prompts.CUSTOM_RETRIEVER_PROMPT.format(USER_INPUT=text, USER_NAME=username)
         response = self.llm_client.chat.completions.create(
             model=self.current_model,
             messages=[
