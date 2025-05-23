@@ -98,14 +98,17 @@ CUSTOM_RETRIEVER_PROMPT: >
 
   1. Retrieve the latest 5 thoughts of all users.
   RESPONSE:
-  SELECT * FROM thoughts WHERE user_tg_id = 12345 and username = USERNAME ORDER BY datetime DESC LIMIT 5
+  SELECT * FROM thoughts WHERE user_tg_id = 12345 and username = USERNAME and type = 'thought' ORDER BY datetime DESC LIMIT 5
   2. Retrieve all entries of type dream within a date range for all users.
   RESPONSE:
-  SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' WHERE username = USERNAME ORDER BY datetime DESC
+    SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' 
+    WHERE username = USERNAME ORDER BY datetime DESC
   5. Count the number of plans for a specific user:
   RESPONSE:  "SELECT COUNT(*) FROM thoughts WHERE user_tg_id = 12345 AND type = 'dream'
   6. Retrieve all unique users who have created dreams.
   RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'dream'
+  7. Покажи мне мои мысли.
+  RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'thought'
 
 
   Based on these examples, you can create or modify SQL queries to meet specific needs. Answer ONLY with the raw sql command
