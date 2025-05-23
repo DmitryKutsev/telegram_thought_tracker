@@ -93,7 +93,7 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         )
 
     elif curr_type == "retreive":
-        my_query = llm_controller.retreive_custom_info(f"{text} user_tg_id = {user_id}")
+        my_query = llm_controller.retreive_custom_info(f"{text} user_tg_id = {user_id}", username)
         my_response = db_connector.execute_custom_query(my_query)
 
         for thought in my_response:
