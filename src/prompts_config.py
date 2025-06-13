@@ -8,6 +8,7 @@ class Prompts(BaseSettings):
     CLASSIFIER_PROMPT: str
     RETREIVER_PROMPT: str
     CUSTOM_RETRIEVER_PROMPT: str
+    ANALYZING_PROMPT: str
     
     @classmethod
     def from_yaml(cls, file_path: str):
