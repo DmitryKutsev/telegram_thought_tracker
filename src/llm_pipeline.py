@@ -151,6 +151,25 @@ class LlmController:
         summary = your_gpt_summarization_function(prompt)
 
         return summary
+    
+
+    def analyze_dreams_or_thoughts(self, content: str) -> str:
+        curr_prompt = my_prompts.DREAMS_OR_THOUGHTS.format(
+            DREAMS_OR_THOUGHTS=content
+        )
+
+        response = self.llm_client.chat.completions.create(
+            model=self.current_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": curr_prompt,
+                }
+            ],
+        )
+        
+        return response.choices[0].message.content
+    
 
 # Example usage (assuming you have a valid SQLAlchemy session):
 # session = Session(bind=engine)

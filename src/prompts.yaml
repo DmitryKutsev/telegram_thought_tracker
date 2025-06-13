@@ -11,7 +11,7 @@ CLASSIFIER_PROMPT: >
   Retreive: If I want to retreive some data like plans dream or thoughts from the data base
   
 
-  When provided with text, respond with only one word: "thought", "dream" or "plans". 
+  When provided with text, respond with only one word: "thought", "dream", "plans" or "analisys". 
   Do not provide explanations or additional information.
 
   Here are some examples to guide your classification:
@@ -55,6 +55,16 @@ CLASSIFIER_PROMPT: >
   Output:
   retreive
 
+  Input:
+    "Проанализируй мне сны за сегодня"
+  Output:
+  analyze
+
+  Input:
+    "Analyze my dreams for last week"
+  Output:
+  analyze
+
   USER_INPUT: {USER_INPUT}
 
 
@@ -91,24 +101,24 @@ CUSTOM_RETRIEVER_PROMPT: >
   text: The content of the thought.
   type: The category of the thought, which can be dream, thought, or plans.
   Use the examples below to perform common operations on the database. 
-  These queries are ready for execution. Replace placeholder values (like 12345, "dream", or specific dates) with the actual values you need.
-  ALWAYS use the ysername from the USERNAME variable.
+  These queries are ready for execution. Replace placeholder values (like 12345, "dream", "thought" or specific dates) with the actual values you need.
+  ALWAYS use the username from the USERNAME variable.
 
   Examples:
 
   1. Retrieve the latest 5 thoughts of all users.
-  RESPONSE:
-  SELECT * FROM thoughts WHERE user_tg_id = 12345 and username = USERNAME and type = 'thought' ORDER BY datetime DESC LIMIT 5
+    RESPONSE:
+    SELECT * FROM thoughts WHERE user_tg_id = 12345 and username = USERNAME and type = 'thought' ORDER BY datetime DESC LIMIT 5
   2. Retrieve all entries of type dream within a date range for all users.
-  RESPONSE:
+    RESPONSE:
     SELECT * FROM thoughts WHERE type = 'dream' AND datetime BETWEEN '2024-12-26 14:57:34' AND '2024-12-27 14:57:34' 
     WHERE username = USERNAME ORDER BY datetime DESC
   5. Count the number of plans for a specific user:
-  RESPONSE:  "SELECT COUNT(*) FROM thoughts WHERE user_tg_id = 12345 AND type = 'dream'
+    RESPONSE:  "SELECT COUNT(*) FROM thoughts WHERE user_tg_id = 12345 AND type = 'dream'
   6. Retrieve all unique users who have created dreams.
-  RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'dream'
+    RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'dream'
   7. Покажи мне мои мысли.
-  RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'thought'
+    RESPONSE:  "SELECT DISTINCT user_tg_id, username FROM thoughts WHERE type = 'thought'
 
 
   Based on these examples, you can create or modify SQL queries to meet specific needs. Answer ONLY with the raw sql command
@@ -117,3 +127,23 @@ CUSTOM_RETRIEVER_PROMPT: >
 
 
   USER_INPUT: {USER_INPUT} USERNAME: {USER_NAME}
+
+
+ANALYZING_PROMPT: > 
+  
+  You are a Jungian psychoanalyst. Analyze the following material using Carl Gustav Jung's analytical psychology,
+   while also applying general psychological insight where relevant.
+
+  For the provided dreams and/or thoughts:
+
+  Identify key symbols, archetypes, or recurring motifs.
+
+  Highlight the most psychologically significant elements, including any emotional tone or conflict.
+
+  Suggest possible unconscious dynamics, internal tensions, or individuation-related processes.
+
+  Offer brief commentary on the overall psychological landscape or state of the individual.
+
+  Be concise, structured, and professional. Respond in no more than 10 sentences.
+
+  Input: {DREAMS_OR_THOUGHTS}

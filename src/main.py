@@ -93,13 +93,28 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         )
 
     elif curr_type == "retreive":
-        my_query = llm_controller.retreive_custom_info(f"{text} user_tg_id = {user_id}", username)
+        my_query = llm_controller.retreive_custom_info(
+            f"{text} user_tg_id = {user_id}", username
+        )
         my_response = db_connector.execute_custom_query(my_query)
 
         for thought in my_response:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id, text=thought, parse_mode="HTML"
             )
+
+    elif curr_type == "analyze":
+        my_query = llm_controller.retreive_custom_info(
+            f"{text} user_tg_id = {user_id}", username
+        )
+        retreived_stuff = db_connector.execute_custom_query(my_query)
+        all_together = " ### NEXT DREAM: ###".join(retreived_stuff)
+
+        my_response = llm_controller.analyze_dreams_or_thoughts(all_together)
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
+        )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
