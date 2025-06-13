@@ -146,4 +146,6 @@ ANALYZING_PROMPT: >
 
   Be concise, structured, and professional. Respond in no more than 10 sentences.
 
-  Input: {DREAMS_OR_THOUGHTS}
+  WHEN ANSWERING USE THE LANGUAGE OF THE INPUT DREAM!
+
+  Input dream: {DREAMS_OR_THOUGHTS}
