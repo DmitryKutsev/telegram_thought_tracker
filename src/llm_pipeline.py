@@ -154,7 +154,7 @@ class LlmController:
     
 
     def analyze_dreams_or_thoughts(self, content: str) -> str:
-        curr_prompt = my_prompts.DREAMS_OR_THOUGHTS.format(
+        curr_prompt = my_prompts.ANALYZING_PROMPT.format(
             DREAMS_OR_THOUGHTS=content
         )
 
