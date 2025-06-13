@@ -137,15 +137,12 @@ ANALYZING_PROMPT: >
   For the provided dreams and/or thoughts:
 
   Identify key symbols, archetypes, or recurring motifs.
-
   Highlight the most psychologically significant elements, including any emotional tone or conflict.
+  Suggest possible unconscious dynamics, internal tensions, or individuation-related processes. 
+  Offer brief commentary on the overall psychological landscape or state of the individual. Be concise, structured, and professional. 
 
-  Suggest possible unconscious dynamics, internal tensions, or individuation-related processes.
+  Respond in no more than 10 sentences.
 
-  Offer brief commentary on the overall psychological landscape or state of the individual.
+  Input dreams/thoughts: {DREAMS_OR_THOUGHTS}
 
-  Be concise, structured, and professional. Respond in no more than 10 sentences.
-
-  WHEN ANSWERING USE THE LANGUAGE OF THE INPUT DREAM!
-
-  Input dream: {DREAMS_OR_THOUGHTS}
+  IMPORTANT: WHEN ANSWERING USE THE LANGUAGE OF THE INPUT DREAM CONTENT! 
