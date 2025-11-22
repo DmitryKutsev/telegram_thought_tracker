@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 
 from loguru import logger
@@ -79,43 +80,51 @@ class DatabaseConnector:
         finally:
             session.close()
 
-    def get_last_thoughts(self, user_tg_id, limit=10):
-        session = self.Session()
-        try:
-            thoughts = (
-                session.query(Thought)
-                .filter_by(user_tg_id=user_tg_id)
-                .order_by(Thought.datetime.desc())
-                .limit(limit)
-                .all()
-            )
-            return thoughts
-        except Exception as e:
-            logger.error(f"Error getting last thoughts: {e}")
-            return []
-        finally:
-            session.close()
-
-    def execute_custom_query(self, query, username=None, params=None) -> list[str]:
+    def execute_custom_query(
+        self, query: str, user_tg_id: int, username: str = None
+    ) -> list[str] | None:
         """
-        Execute a custom SQL query on the database.
+        Execute a custom SQL query on the database with security validation.
 
         :param query: The SQL query to execute.
-        :param params: Parameters to use in the query (optional).
-        :return: The result of the query as a list of rows (or None if an error occurs).
+        :param user_tg_id: The Telegram user ID - must match in the query for security.
+        :param username: Username (optional, for logging).
+        :return: The result of the query as a list of rows, or None if validation fails or error occurs.
         """
+        # Security check: validate that username in WHERE clause matches Telegram username
+        if username:
+            # Match pattern: username = 'telegram_username' (with single or double quotes, with/without spaces)
+            # Directly check if the value matches the Telegram username
+            pattern = fr"username\s*=\s*['\"]{re.escape(username)}['\"]"
+            match = re.search(pattern, query.lower())
+            
+            if not match:
+                logger.error(
+                    f"Security validation failed: username '{username}' not found in WHERE clause for user {user_tg_id}. Query: {query}"
+                )
+                return None
+        
         session = self.Session()
         try:
-            thoughts = session.execute(text(query))
+            result = session.execute(text(query))
+            rows = result.fetchall()
 
-            if not thoughts:
-                my_response = ["No information on query {query}"]
+            if not rows:
+                logger.info(f"Empty result from database query. Query: {query}")
+                my_response = ["No information found for the query"]
             else:
                 my_response = [
-                    f"<b>Here is your data:</b>\n"
+                    "<b>Here is your data:</b>\n"
                 ]
 
-                for thought in thoughts:
+                for thought in rows:
+                    # Additional safety check: verify each result belongs to the user
+                    if hasattr(thought, 'user_tg_id') and thought.user_tg_id != user_tg_id:
+                        logger.warning(
+                            f"Query returned data for different user. Expected {user_tg_id}, got {thought.user_tg_id}"
+                        )
+                        continue
+                    
                     resp_string = (
                         f"<b>User:</b> {thought.username}\n"
                         f"<b>Date:</b> {thought.datetime}\n"
@@ -132,70 +141,3 @@ class DatabaseConnector:
             return None
         finally:
             session.close()
-
-    def get_thoughts_by_type_and_date(self, type, start_date, end_date):
-        """
-        Retrieve thoughts filtered by type and a date range.
-
-        :param type: The type of thoughts to retrieve ("dream", "thought", "plans").
-        :param start_date: Start of the date range (datetime object).
-        :param end_date: End of the date range (datetime object).
-        :return: List of thoughts matching the criteria.
-        """
-        session = self.Session()
-        try:
-            thoughts = (
-                session.query(Thought)
-                .filter(Thought.type == type)
-                .filter(Thought.datetime >= start_date)
-                .filter(Thought.datetime <= end_date)
-                .order_by(Thought.datetime.desc())
-                .all()
-            )
-
-            if not thoughts:
-                my_response = ["No {type} found from {start_date} to {end_date}"]
-            else:
-                my_response = [
-                    f"<b>Here are your {type} from {start_date} to {end_date}:</b>\n"
-                ]
-
-                for thought in thoughts:
-                    resp_string = (
-                        f"<b>User:</b> {thought.username}\n"
-                        f"<b>Date:</b> {thought.datetime.strftime('%Y-%m-%d')}\n"
-                        f"<b>Type:</b> {thought.type}\n"
-                        f"<b>Text:</b> {thought.text}\n\n"
-                    )
-                    my_response.append(resp_string)
-
-            return my_response
-        
-        except Exception as e:
-            logger.error(f"Error retrieving thoughts by type and date range: {e}")
-            return []
-        finally:
-            session.close()
-
-# TODO: replace this with normal unit tests!!
-# if __name__ == "__main__":
-    # db_connector = DatabaseConnector()
-    
-    
-    # mystr = "SELECT * FROM thoughts"
-    # hrrr = db_connector.execute_custom_query(mystr)
-    # for i in hrrr:
-    #     print(i)
-        
-# db_connector.add_thought(123, "Dima", "This is my first thought.", "dream")
-# db_connector.add_thought(123, "Dima", "Another thought here.", "thought")
-# #     db_connector.add_thought(456, "Dima", "A thought from another user.")
-
-# last_thoughts_user_123 = db_connector.get_last_thoughts(204039280)
-# for thought in last_thoughts_user_123:
-#     print(
-#         f"User ID: {thought.user_tg_id}, Username: {thought.username}\n"
-#         f"Time: {thought.datetime}  Type: {thought.type}, Text: { thought.text} "
-#         f"Time: {thought.datetime.strftime("%Y-%m-%d") >= "2024-11-24"} "
-#     )
-

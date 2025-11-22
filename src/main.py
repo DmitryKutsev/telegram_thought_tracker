@@ -1,70 +1,102 @@
-import asyncio
-import os
 import tempfile
 
-from dotenv import load_dotenv
 from telegram import (
-    Bot,
-    ReplyKeyboardRemove,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     Update,
 )
 from telegram.ext import (
     Application,
     CallbackContext,
-    ContextTypes,
-    ConversationHandler,
+    CallbackQueryHandler,
+    CommandHandler,
     MessageHandler,
-    Updater,
     filters,
 )
 
+from agents import (
+    DEFAULT_MODEL,
+    LlmController,
+    OPENAI_MODELS_LIST,
+    TOGETHER_MODELS_LIST,
+)
+from config import settings
 from db_connector import DatabaseConnector
-from llm_pipeline import LlmController
-
-load_dotenv()
-
-BOT_KEY = os.getenv("BOT_KEY")
-PORT = int(os.getenv("PORT", "5000"))
-APP_NAME = os.getenv("APP_NAME", "glacial-caverns-10538")
-WEBHOOK_LINK = os.getenv("WEBHOOK_LINK")
 
 
 db_connector = DatabaseConnector()
+# Store user model preferences: {user_id: model_name}
+user_models: dict[int, str] = {}
 
 
-DEFAULT_MODEL = "gpt-4o"
+def get_user_llm_controller(user_id: int) -> LlmController:
+    """Get or create LlmController for a specific user with their model preference."""
+    model = user_models.get(user_id, DEFAULT_MODEL)
+    return LlmController(model_name=model)
 
 
-TOGETHER_MODELS_LIST = [
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    "Qwen/QwQ-32B-Preview",
-    "meta-llama/Llama-3-70b-chat-hf",
-    "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    "Qwen/Qwen1.5-110B-Chat",
-    "WizardLM/WizardLM-13B-V1.2",
-    "togethercomputer/RedPajama-INCITE-7B-Chat",
-    "togethercomputer/alpaca-7b",
-]
-
-ALL_MODELS_LIST = TOGETHER_MODELS_LIST + [DEFAULT_MODEL]
-MODELS_IN_USE_LIST = [DEFAULT_MODEL]
-
-last_msg_lst = [" "]
-
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Cancels and ends the conversation."""
+async def model_command(update: Update, context: CallbackContext) -> None:
+    """Handle /model command to show model selection menu."""
+    keyboard = []
+    
+    # Add OpenAI models
+    keyboard.append([InlineKeyboardButton("🤖 OpenAI Models", callback_data="group_openai")])
+    for model in OPENAI_MODELS_LIST[:4]:  # Show first 4 OpenAI models
+        display_name = model.replace("gpt-", "").replace("-", " ").title()
+        keyboard.append([InlineKeyboardButton(
+            f"• {display_name}",
+            callback_data=f"model_{model}"
+        )])
+    
+    # Add separator
+    keyboard.append([InlineKeyboardButton("━━━━━━━━━━━━", callback_data="separator")])
+    
+    # Add Together AI models
+    keyboard.append([InlineKeyboardButton("🔮 Together AI Models", callback_data="group_together")])
+    for model in TOGETHER_MODELS_LIST[:6]:  # Show first 6 Together models
+        # Shorten model names for display
+        display_name = model.split("/")[-1].replace("-", " ").title()
+        if len(display_name) > 30:
+            display_name = display_name[:27] + "..."
+        keyboard.append([InlineKeyboardButton(
+            f"• {display_name}",
+            callback_data=f"model_{model}"
+        )])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    current_model = user_models.get(update.effective_user.id, DEFAULT_MODEL)
     await update.message.reply_text(
-        "Bye! Hope to talk to you again soon.", reply_markup=ReplyKeyboardRemove()
+        f"Select a model:\n\nCurrent: <b>{current_model}</b>",
+        reply_markup=reply_markup,
+        parse_mode="HTML"
     )
-    return ConversationHandler.END
+
+
+async def model_callback(update: Update, context: CallbackContext) -> None:
+    """Handle model selection button callbacks."""
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data.startswith("model_"):
+        model_name = query.data.replace("model_", "")
+        user_id = update.effective_user.id
+        user_models[user_id] = model_name
+        
+        await query.edit_message_text(
+            f"✅ Model changed to: <b>{model_name}</b>",
+            parse_mode="HTML"
+        )
+    elif query.data in ("group_openai", "group_together", "separator"):
+        # Ignore group headers and separators
+        await query.answer()
 
 
 async def response_all(update: Update, context: CallbackContext) -> None:
     """Handles all messages that are not commands."""
-    llm_controller = LlmController()
     user_id = update.message.from_user.id
     username = update.message.from_user.username
+    llm_controller = get_user_llm_controller(user_id)
 
     if update.message.text:
         text = update.message.text
@@ -79,8 +111,8 @@ async def response_all(update: Update, context: CallbackContext) -> None:
 
         text = llm_controller.transcribe_text(temp_path)
 
-    last_msg_lst[0] = text
-    curr_type = llm_controller.classify_text(text)
+    # Classify the message using the AI agent
+    curr_type = await llm_controller.classify_text(text)
 
     if curr_type in ("dream", "thought", "plans"):
         db_connector.add_thought(user_id, username, text, curr_type)
@@ -93,64 +125,78 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         )
 
     elif curr_type == "retreive":
-        my_query = llm_controller.retreive_custom_info(
-            f"{text} user_tg_id = {user_id}", username
-        )
-        my_response = db_connector.execute_custom_query(my_query)
-
-        for thought in my_response:
+        # Generate SQL query using the AI agent with retry on validation failure
+        max_retries = 3
+        my_query = None
+        my_response = None
+        
+        for attempt in range(max_retries):
+            my_query = await llm_controller.generate_sql_query(text, username, user_id)
+            my_response = db_connector.execute_custom_query(my_query, user_id, username)
+            
+            if my_response is not None:
+                # Query passed validation, break out of retry loop
+                break
+            elif attempt < max_retries - 1:
+                # Reprompt with emphasis on user_tg_id requirement
+                text = f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in the WHERE clause to filter by the correct user."
+        
+        if my_response:
+            for thought in my_response:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id, text=thought, parse_mode="HTML"
+                )
+        else:
             await context.bot.send_message(
-                chat_id=update.effective_chat.id, text=thought, parse_mode="HTML"
+                chat_id=update.effective_chat.id,
+                text="❌ Unable to generate a secure query. Please try again with a more specific request.",
+                parse_mode="HTML"
             )
 
     elif curr_type == "analyze":
-        my_query = llm_controller.retreive_custom_info(
-            f"{text} user_tg_id = {user_id}", username
-        )
-        retreived_stuff = db_connector.execute_custom_query(my_query)
-        all_together = " ### NEXT DREAM: ###".join(retreived_stuff)
+        # Generate SQL query to retrieve data for analysis with retry on validation failure
+        max_retries = 3
+        my_query = None
+        retreived_stuff = None
+        
+        for attempt in range(max_retries):
+            my_query = await llm_controller.generate_sql_query(text, username, user_id)
+            retreived_stuff = db_connector.execute_custom_query(my_query, user_id, username)
+            
+            if retreived_stuff is not None:
+                # Query passed validation, break out of retry loop
+                break
+            elif attempt < max_retries - 1:
+                # Reprompt with emphasis on user_tg_id requirement
+                text = f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in the WHERE clause to filter by the correct user."
+        
+        if retreived_stuff:
+            all_together = " ### NEXT DREAM: ###".join(retreived_stuff)
+            # Analyze using the AI agent
+            my_response = await llm_controller.analyze_dreams_or_thoughts(all_together)
 
-        my_response = llm_controller.analyze_dreams_or_thoughts(all_together)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="❌ Unable to generate a secure query for analysis. Please try again with a more specific request.",
+                parse_mode="HTML"
+            )
 
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
-        )
-
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
-    user = update.effective_user
-    await update.message.reply_text(
-        rf"Hi {user.mention_html()}!",
-        parse_mode="HTML",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-
-
-def run() -> None:
-    """Run the bot."""
-    print("starting app")
-
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=BOT_KEY,
-        webhook_url=f"{WEBHOOK_LINK}/{BOT_KEY}",
-    )
-
-
-my_bot = Bot(token=BOT_KEY)
-my_queue = asyncio.Queue()
-
-updater = Updater(my_bot, my_queue)
 
 response_all_handler = MessageHandler(
     (filters.TEXT | filters.VOICE) & (~filters.COMMAND), response_all
 )
+model_command_handler = CommandHandler("model", model_command)
+model_callback_handler = CallbackQueryHandler(model_callback, pattern="^(model_|group_|separator)")
 
 print("Building app")
-application = Application.builder().updater(updater).build()
+application = Application.builder().token(settings.BOT_KEY).build()
 
+application.add_handler(model_command_handler)
+application.add_handler(model_callback_handler)
 application.add_handler(response_all_handler)
 print("Building is done")
 
