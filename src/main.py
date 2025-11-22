@@ -172,7 +172,8 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         
         if retreived_stuff:
             all_together = " ### NEXT DREAM: ###".join(retreived_stuff)
-            # Analyze using the AI agent
+            
+            # Analyze using the AI agent (handles chunking and summarization internally if needed)
             my_response = await llm_controller.analyze_dreams_or_thoughts(all_together)
 
             await context.bot.send_message(

@@ -3,6 +3,7 @@
 import datetime
 import os
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from openai import OpenAI
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
@@ -58,6 +59,7 @@ TOGETHER_MODELS_LIST = [
 # Prompt placeholder constants
 PLACEHOLDER_USER_INPUT = "USER_INPUT:"
 PLACEHOLDER_DREAMS_THOUGHTS = "INOUT DREAMS/THOUGHTS:"
+PLACEHOLDER_DREAMS_CONTENT = "DREAMS TO SUMMARIZE:"
 
 
 def clean_prompt(prompt: str, placeholder: str) -> str:
@@ -118,6 +120,36 @@ def create_analysis_agent(model_name: str = DEFAULT_MODEL) -> Agent:
     )
 
 
+def create_summarization_agent(model_name: str = DEFAULT_MODEL) -> Agent:
+    """Create a summarization agent with the specified model."""
+    prompt = clean_prompt(settings.SUMMARIZATION_PROMPT, PLACEHOLDER_DREAMS_CONTENT)
+    # Summarization doesn't need structured output, just return text
+    return Agent(
+        model=get_model(model_name),
+        system_prompt=prompt,
+    )
+
+
+def count_tokens(text: str) -> int:
+    """Count tokens in text. Uses character-based estimate (tiktoken is used by RecursiveCharacterTextSplitter for chunking)."""
+    # Conservative estimate: ~4 characters per token
+    # RecursiveCharacterTextSplitter uses tiktoken internally for accurate chunking
+    return len(text) // 4
+
+
+def chunk_text(text: str, chunk_size_tokens: int = None) -> list[str]:
+    """Split text into chunks using langchain's RecursiveCharacterTextSplitter."""
+    if chunk_size_tokens is None:
+        chunk_size_tokens = settings.CHUNK_SIZE_TOKENS
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        model_name="gpt-4o",
+        chunk_size=chunk_size_tokens,
+        chunk_overlap=200,  # Small overlap to preserve context
+    )
+    chunks = text_splitter.split_text(text)
+    return chunks
+
+
 class LlmController:
     """Controller for AI agents using Pydantic AI."""
 
@@ -129,6 +161,7 @@ class LlmController:
         self.classification_agent = create_classification_agent(model_name)
         self.sql_query_agent = create_sql_query_agent(model_name)
         self.analysis_agent = create_analysis_agent(model_name)
+        self.summarization_agent = create_summarization_agent(model_name)
 
     async def classify_text(self, text: str) -> str:
         """Classify the text and return the type as a string."""
@@ -144,9 +177,40 @@ class LlmController:
         result = await self.sql_query_agent.run(prompt)
         return result.data.query
 
+    async def summarize_dreams(self, content: str) -> str:
+        """Summarize dreams using the summarization prompt."""
+        result = await self.summarization_agent.run(content)
+        # Get the text response (summarization agent doesn't use structured output)
+        if hasattr(result, 'data') and hasattr(result.data, 'analysis'):
+            return result.data.analysis
+        return str(result.data) if hasattr(result, 'data') else str(result)
+
     async def analyze_dreams_or_thoughts(self, content: str) -> str:
-        """Analyze dreams or thoughts using Jungian psychology."""
-        result = await self.analysis_agent.run(content)
+        """Analyze dreams or thoughts. If content is too long, chunk and summarize first."""
+        # Count tokens
+        token_count = count_tokens(content)
+        
+        # If content is within limit, analyze directly
+        if token_count <= settings.MAX_TOKENS_FOR_ANALYSIS:
+            result = await self.analysis_agent.run(content)
+            return result.data.analysis
+        
+        # Content is too long - chunk and summarize
+        chunks = chunk_text(content, settings.CHUNK_SIZE_TOKENS)
+        
+        # Limit to 4-5 chunks as requested
+        if len(chunks) > 5:
+            chunks = chunks[:5]
+        
+        # Summarize each chunk
+        summaries = []
+        for i, chunk in enumerate(chunks):
+            summary = await self.summarize_dreams(chunk)
+            summaries.append(f"### Summary {i+1} ###\n{summary}")
+        
+        # Join all summaries and analyze
+        all_summaries = "\n\n".join(summaries)
+        result = await self.analysis_agent.run(all_summaries)
         return result.data.analysis
 
     def transcribe_text(self, temp_path: str) -> str:

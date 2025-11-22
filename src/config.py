@@ -29,6 +29,7 @@ if yaml_path.exists():
     settings.CLASSIFIER_PROMPT = yaml_data.get("CLASSIFIER_PROMPT", "")
     settings.CUSTOM_RETRIEVER_PROMPT = yaml_data.get("CUSTOM_RETRIEVER_PROMPT", "")
     settings.ANALYZING_PROMPT = yaml_data.get("ANALYZING_PROMPT", "")
+    settings.SUMMARIZATION_PROMPT = yaml_data.get("SUMMARIZATION_PROMPT", "")
 
 if __name__ == "__main__":
     print(f"Together API Key: {settings.TOGETHER_API_KEY}")
