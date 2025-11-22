@@ -12,9 +12,12 @@ class ProjectSettings(BaseSettings):
     DATABASE_FILE: str = "thoughts.db"
     MAX_DB_SIZE: float
     MAX_AUDIO_FILE_SIZE_MB: int = 25  # Whisper API limit (can be overridden in .env)
+    MAX_TOKENS_FOR_ANALYSIS: int = 20000  # Max tokens for direct analysis (can be overridden in .env)
+    CHUNK_SIZE_TOKENS: int = 15000  # Size of each chunk for summarization (can be overridden in .env)
     CLASSIFIER_PROMPT: str = ""
     CUSTOM_RETRIEVER_PROMPT: str = ""
     ANALYZING_PROMPT: str = ""
+    SUMMARIZATION_PROMPT: str = ""
 
 
 settings = ProjectSettings(_env_file=".env", _env_file_encoding="utf-8")
