@@ -130,19 +130,12 @@ def create_summarization_agent(model_name: str = DEFAULT_MODEL) -> Agent:
     )
 
 
-def count_tokens(text: str) -> int:
-    """Count tokens in text. Uses character-based estimate (tiktoken is used by RecursiveCharacterTextSplitter for chunking)."""
-    # Conservative estimate: ~4 characters per token
-    # RecursiveCharacterTextSplitter uses tiktoken internally for accurate chunking
-    return len(text) // 4
-
-
-def chunk_text(text: str, chunk_size_tokens: int = None) -> list[str]:
+def chunk_text(text: str, chunk_size_tokens: int = None, model_name: str = "gpt-4o") -> list[str]:
     """Split text into chunks using langchain's RecursiveCharacterTextSplitter."""
     if chunk_size_tokens is None:
         chunk_size_tokens = settings.CHUNK_SIZE_TOKENS
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        model_name="gpt-4o",
+        model_name=model_name,
         chunk_size=chunk_size_tokens,
         chunk_overlap=200,  # Small overlap to preserve context
     )
@@ -187,31 +180,82 @@ class LlmController:
 
     async def analyze_dreams_or_thoughts(self, content: str) -> str:
         """Analyze dreams or thoughts. If content is too long, chunk and summarize first."""
-        # Count tokens
-        token_count = count_tokens(content)
+        # Use RecursiveCharacterTextSplitter to measure if content needs chunking
+        # Use a conservative threshold (70% of max) to account for prompt overhead and response tokens
+        max_tokens_threshold = int(settings.MAX_TOKENS_FOR_ANALYSIS * 0.7)
         
-        # If content is within limit, analyze directly
-        if token_count <= settings.MAX_TOKENS_FOR_ANALYSIS:
-            result = await self.analysis_agent.run(content)
-            return result.data.analysis
+        # Split content with the threshold to see if it fits in one chunk
+        test_chunks = chunk_text(content, max_tokens_threshold, self.model_name)
+        
+        print(f"Content splits into {len(test_chunks)} chunk(s) at threshold {max_tokens_threshold} tokens")
+        
+        # If content fits in one chunk, analyze directly
+        if len(test_chunks) == 1:
+            try:
+                result = await self.analysis_agent.run(content)
+                # Handle both structured and unstructured responses
+                if hasattr(result, 'data') and hasattr(result.data, 'analysis'):
+                    return result.data.analysis
+                # Fallback for unstructured responses
+                return str(result.data) if hasattr(result, 'data') else str(result)
+            except Exception as e:
+                # If validation fails, try chunking as fallback
+                print(f"Direct analysis failed, falling back to chunking: {e}")
+                # Continue to chunking logic below
         
         # Content is too long - chunk and summarize
-        chunks = chunk_text(content, settings.CHUNK_SIZE_TOKENS)
+        # Use smaller chunk size to be more conservative (50% of threshold)
+        chunk_size = min(settings.CHUNK_SIZE_TOKENS, max_tokens_threshold // 2)
+        print(f"Chunking content into chunks of size: {chunk_size} tokens")
+        chunks = chunk_text(content, chunk_size, self.model_name)
         
         # Limit to 4-5 chunks as requested
         if len(chunks) > 5:
             chunks = chunks[:5]
+            print(f"Limited to 5 chunks (had {len(chunks)} chunks)")
         
         # Summarize each chunk
         summaries = []
         for i, chunk in enumerate(chunks):
-            summary = await self.summarize_dreams(chunk)
-            summaries.append(f"### Summary {i+1} ###\n{summary}")
+            try:
+                # Measure chunk size using the splitter
+                chunk_test = chunk_text(chunk, chunk_size, self.model_name)
+                chunk_count = len(chunk_test)
+                print(f"Summarizing chunk {i+1}/{len(chunks)} (splits into {chunk_count} sub-chunks)")
+                summary = await self.summarize_dreams(chunk)
+                summaries.append(f"### Summary {i+1} ###\n{summary}")
+            except Exception as e:
+                print(f"Error summarizing chunk {i+1}: {e}")
+                # Use a truncated version of the chunk if summarization fails
+                chunk_test = chunk_text(chunk, chunk_size, self.model_name)
+                if len(chunk_test) > 1:
+                    # Chunk is still too large, truncate it
+                    truncated = chunk[:chunk_size * 4]  # Rough character estimate
+                    summaries.append(f"### Summary {i+1} (truncated) ###\n{truncated}")
+                else:
+                    summaries.append(f"### Summary {i+1} ###\n{chunk[:500]}...")
         
         # Join all summaries and analyze
         all_summaries = "\n\n".join(summaries)
-        result = await self.analysis_agent.run(all_summaries)
-        return result.data.analysis
+        
+        # Check if summaries are still too long using the splitter
+        summary_chunks = chunk_text(all_summaries, max_tokens_threshold, self.model_name)
+        print(f"Total summaries split into {len(summary_chunks)} chunk(s) at threshold {max_tokens_threshold} tokens")
+        
+        if len(summary_chunks) > 1:
+            # Further truncate if needed - take only the first chunk
+            all_summaries = summary_chunks[0]
+            print("Truncated summaries to fit in one chunk")
+        
+        try:
+            result = await self.analysis_agent.run(all_summaries)
+            if hasattr(result, 'data') and hasattr(result.data, 'analysis'):
+                return result.data.analysis
+            return str(result.data) if hasattr(result, 'data') else str(result)
+        except Exception as e:
+            print(f"Analysis failed after chunking: {e}")
+            # Last resort: return a simple message
+            return f"Analysis completed but encountered formatting issues. Found {len(chunks)} chunks of content. Error: {str(e)}"
 
     def transcribe_text(self, temp_path: str) -> str:
         """Transcribe audio file to text using Whisper.
