@@ -1,7 +1,11 @@
 from pathlib import Path
+from typing import Any
 
 import yaml
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+_root = Path(__file__).parent.parent
 
 
 class ProjectSettings(BaseSettings):
@@ -9,35 +13,56 @@ class ProjectSettings(BaseSettings):
     OPENAI_API_KEY: str
     GOOGLE_API_KEY: str
     BOT_KEY: str
-    DATABASE_FILE: str = "thoughts.db"
+
+    @model_validator(mode="after")
+    def _require_keys(self) -> "ProjectSettings":
+        missing = [
+            k
+            for k in ("TOGETHER_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY", "BOT_KEY")
+            if not getattr(self, k)
+        ]
+        if missing:
+            raise ValueError(f"Missing required env vars: {missing}")
+        return self
+
+    DATABASE_FILE: str
     MAX_DB_SIZE: float
-    MAX_AUDIO_FILE_SIZE_MB: int = 25  # Whisper API limit (can be overridden in .env)
-    MAX_TOKENS_FOR_ANALYSIS: int = 20000  # Max tokens for direct analysis (can be overridden in .env)
-    CHUNK_SIZE_TOKENS: int = 15000  # Size of each chunk for summarization (can be overridden in .env)
-    CLASSIFIER_PROMPT: str = ""
-    CUSTOM_RETRIEVER_PROMPT: str = ""
-    ANALYZING_PROMPT: str = ""
-    SUMMARIZATION_PROMPT: str = ""
+    MAX_AUDIO_FILE_SIZE_MB: int
+    AUDIO_TRANSCRIPTION_MODEL: str
+    AUDIO_SILENCE_MIN_LEN_MS: int
+    AUDIO_SILENCE_THRESH_DB: int
+    AUDIO_KEEP_SILENCE_MS: int
+    AUDIO_FALLBACK_CHUNK_MIN: int
+    MAX_TOKENS_FOR_ANALYSIS: int
+    CHUNK_SIZE_TOKENS: int
+    DEFAULT_MODEL: str
+    OPENAI_MODELS_LIST: list[str]
+    TOGETHER_MODELS_LIST: list[str]
+    PLACEHOLDER_USER_INPUT: str
+    PLACEHOLDER_DREAMS_THOUGHTS: str
+    PLACEHOLDER_DREAMS_CONTENT: str
+    CLASSIFIER_PROMPT: str
+    CUSTOM_RETRIEVER_PROMPT: str
+    ANALYZING_PROMPT: str
+    SUMMARIZATION_PROMPT: str
 
 
-settings = ProjectSettings(_env_file=".env", _env_file_encoding="utf-8")
+settings = ProjectSettings(_env_file=_root / ".env", _env_file_encoding="utf-8")  # pyright: ignore[reportCallIssue]
 
-# Load prompts from YAML
-curr_dir = Path(__file__).parent
-yaml_path = curr_dir / "prompts.yaml"
-if yaml_path.exists():
-    with open(yaml_path, "r") as file:
-        yaml_data = yaml.safe_load(file) or {}
-    # Update prompts in settings
-    settings.CLASSIFIER_PROMPT = yaml_data.get("CLASSIFIER_PROMPT", "")
-    settings.CUSTOM_RETRIEVER_PROMPT = yaml_data.get("CUSTOM_RETRIEVER_PROMPT", "")
-    settings.ANALYZING_PROMPT = yaml_data.get("ANALYZING_PROMPT", "")
-    settings.SUMMARIZATION_PROMPT = yaml_data.get("SUMMARIZATION_PROMPT", "")
+with open(_root / "config.yaml") as f:
+    _cfg: dict[str, Any] = yaml.safe_load(f) or {}
 
-if __name__ == "__main__":
-    print(f"Together API Key: {settings.TOGETHER_API_KEY}")
-    print(f"OpenAI API Key: {settings.OPENAI_API_KEY}")
-    print(f"Google API Key: {settings.GOOGLE_API_KEY}")
-    print(f"Telegram Bot Key: {settings.BOT_KEY}")
-    print(f"Database file: {settings.DATABASE_FILE}")
-    print(f"Max db size: {settings.MAX_DB_SIZE}")
+for _key, _value in _cfg.items():
+    if hasattr(settings, _key):
+        setattr(settings, _key, _value)
+
+_prompts_path = Path(__file__).parent / "prompts.yaml"
+
+if _prompts_path.exists():
+    with open(_prompts_path) as f:
+        _prompts: dict[str, Any] = yaml.safe_load(f) or {}
+
+    settings.CLASSIFIER_PROMPT = _prompts.get("CLASSIFIER_PROMPT", "")
+    settings.CUSTOM_RETRIEVER_PROMPT = _prompts.get("CUSTOM_RETRIEVER_PROMPT", "")
+    settings.ANALYZING_PROMPT = _prompts.get("ANALYZING_PROMPT", "")
+    settings.SUMMARIZATION_PROMPT = _prompts.get("SUMMARIZATION_PROMPT", "")
