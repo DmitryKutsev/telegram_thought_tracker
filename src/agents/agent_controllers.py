@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 
 from openai import OpenAI
@@ -11,8 +12,10 @@ from agents.agents import (
     create_sql_query_agent,
     create_summarization_agent,
 )
-from config import settings
 from agents.utils import chunk_text
+from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class LlmController:
@@ -31,10 +34,11 @@ class LlmController:
     async def generate_sql_query(
         self, user_input: str, username: str, user_tg_id: int
     ) -> str:
-        today = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         prompt = f"{user_input} today date: {today}. User ID: {user_tg_id}, Username: {username}"
 
         result = await self.sql_query_agent.run(prompt)
+        logger.info(f"SQL Query generated: {result}")
         return result.data.query
 
     async def summarize_dreams(self, content: str) -> str:

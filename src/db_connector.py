@@ -19,10 +19,12 @@ class Thought(Base):
     __tablename__ = "thoughts"
 
     id = Column(Integer, primary_key=True)
-    datetime = Column(DateTime, default=datetime.utcnow)
+    datetime = Column(
+        DateTime, default=datetime.now, nullable=False
+    )
 
-    user_tg_id = Column(Integer, nullable=False)
-    username = Column(Text)
+    user_tg_id = Column(Integer)
+    username = Column(Text, nullable=False)
     text = Column(Text)
     type = Column(Enum("dream", "thought", "plans"))
 
@@ -41,16 +43,30 @@ class DatabaseConnector:
         Base.metadata.create_all(self.engine)  # Create tables if they don't exist
         self.Session: sessionmaker[Session] = sessionmaker(bind=self.engine)
 
-    def add_thought(self, user_tg_id: int, username: str | None, text: str | None, type: str) -> None:
+    def add_thought(
+        self, user_tg_id: int, username: str, text: str | None, type: str
+    ) -> None:
         session: Session = self.Session()
 
         try:
             new_thought = Thought(
-                user_tg_id=user_tg_id, username=username, text=text, type=type
+                user_tg_id=user_tg_id,
+                username=username,
+                text=text,
+                datetime=datetime.now(),
+                type=type,
+            )
+            logger.info(
+                f"Adding a new {type}: for user {new_thought.username}"
+                f"(ID: {new_thought.user_tg_id}) with text: {text} to"
+                f" the database. Datetime: {new_thought.datetime}"
             )
 
             session.add(new_thought)
             session.commit()
+            logger.info(
+                f"Added {type} for user {username} (ID: {user_tg_id}) to the database."
+            )
             self._check_db_size()
 
         except Exception as e:

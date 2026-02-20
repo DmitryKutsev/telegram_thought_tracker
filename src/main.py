@@ -17,6 +17,11 @@ from telegram.ext import (
 from agents.agent_controllers import LlmController
 from config import settings
 from db_connector import DatabaseConnector
+import logging
+    
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 db_connector = DatabaseConnector()
 user_models: dict[int, str] = {}
@@ -106,6 +111,8 @@ async def response_all(update: Update, context: CallbackContext) -> None:
 
     if curr_type in ("dream", "thought", "plans"):
         db_connector.add_thought(user_id, username, text, curr_type)  # type: ignore
+        logger.info(f"Added {curr_type} for user {username} (ID: {user_id}) to the database.")
+
         my_response = (
             f"{curr_type.upper()} with content: {text} from {username} added to DB"  # type: ignore
         )
@@ -113,7 +120,7 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         await context.bot.send_message(  # type: ignore also tg
             chat_id=update.effective_chat.id,
             text=my_response,
-            parse_mode="HTML",  # type: ignore
+            parse_mode="HTML",  # type: ignore I'm giving up on all the telegram lib typing errors
         )
 
     elif curr_type == "retreive":
@@ -124,22 +131,24 @@ async def response_all(update: Update, context: CallbackContext) -> None:
         for attempt in range(max_retries):
             my_query = await llm_controller.generate_sql_query(text, username, user_id)
             my_response = db_connector.execute_custom_query(my_query, user_id, username)
+            logger.info(f"Custom query attempt {attempt + 1}: {my_query} with response: {my_response}")
 
             if my_response is not None:
                 break
             elif attempt < max_retries - 1:
                 text = (
-                    f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in "  # type: ignore
+                    f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in "
                     f"the WHERE clause to filter by the correct user."
                 )
 
         if my_response:
             for thought in my_response:
-                await context.bot.send_message(  # type: ignore
+                logger.info(f"Retrieved thought of user {username} (ID: {user_id}): {thought}")
+                await context.bot.send_message(
                     chat_id=update.effective_chat.id, text=thought, parse_mode="HTML"
                 )
         else:
-            await context.bot.send_message(  # type: ignore
+            await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Unable to generate a secure query. Please try again with a more specific request.",
                 parse_mode="HTML",
@@ -148,32 +157,33 @@ async def response_all(update: Update, context: CallbackContext) -> None:
     elif curr_type == "analyze":
         max_retries = 3
         my_query: str | None = None
-        retreived_stuff: list[str] | None = None
+        retreived_analisys: list[str] | None = None
 
         for attempt in range(max_retries):
             my_query = await llm_controller.generate_sql_query(text, username, user_id)
-            retreived_stuff = db_connector.execute_custom_query(
+            retreived_analisys = db_connector.execute_custom_query(
                 my_query, user_id, username
             )
+            logger.info(f"Analysis query attempt {attempt + 1}: {my_query} with response: {retreived_analisys}")
 
-            if retreived_stuff is not None:
+            if retreived_analisys is not None:
                 break
             elif attempt < max_retries - 1:
                 text = (
-                    f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in "  # type: ignore
+                    f"{text} IMPORTANT: The query MUST include 'user_tg_id = {user_id}' in "
                     f"the WHERE clause to filter by the correct user."
                 )
 
-        if retreived_stuff:
-            all_together = " ### NEXT DREAM: ###".join(retreived_stuff)
+        if retreived_analisys:
+            all_together = " ### NEXT DREAM: ###".join(retreived_analisys)
 
             my_response = await llm_controller.analyze_dreams_or_thoughts(all_together)
 
-            await context.bot.send_message(  # type: ignore
+            await context.bot.send_message(
                 chat_id=update.effective_chat.id, text=my_response, parse_mode="HTML"
             )
         else:
-            await context.bot.send_message(  # type: ignore
+            await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Unable to generate a secure query for analysis. Please try again with a more specific request.",
                 parse_mode="HTML",
@@ -200,3 +210,8 @@ print("Building is done")
 
 if __name__ == "__main__":
     application.run_polling()
+# ELECT * FROM thoughts WHERE username = 'dima_in_the_forest' AND type =
+# 'dream' AND datetime BETWEEN '2026-02-20 23:10:48' AND '2026-02-20 23:40:48' ORDER BY datetime DESC"
+
+# SELECT * FROM thoughts WHERE username = 'dima_in_the_forest' AND type = 'dream' AND datetime 
+# BETWEEN '2026-02-20 20:40:11' AND '2026-02-20 23:40:11' ORDER BY datetime DESC

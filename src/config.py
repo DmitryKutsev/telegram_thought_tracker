@@ -25,26 +25,26 @@ class ProjectSettings(BaseSettings):
             raise ValueError(f"Missing required env vars: {missing}")
         return self
 
-    DATABASE_FILE: str
-    MAX_DB_SIZE: float
-    MAX_AUDIO_FILE_SIZE_MB: int
-    AUDIO_TRANSCRIPTION_MODEL: str
-    AUDIO_SILENCE_MIN_LEN_MS: int
-    AUDIO_SILENCE_THRESH_DB: int
-    AUDIO_KEEP_SILENCE_MS: int
-    AUDIO_FALLBACK_CHUNK_MIN: int
-    MAX_TOKENS_FOR_ANALYSIS: int
-    CHUNK_SIZE_TOKENS: int
-    DEFAULT_MODEL: str
-    OPENAI_MODELS_LIST: list[str]
-    TOGETHER_MODELS_LIST: list[str]
-    PLACEHOLDER_USER_INPUT: str
-    PLACEHOLDER_DREAMS_THOUGHTS: str
-    PLACEHOLDER_DREAMS_CONTENT: str
-    CLASSIFIER_PROMPT: str
-    CUSTOM_RETRIEVER_PROMPT: str
-    ANALYZING_PROMPT: str
-    SUMMARIZATION_PROMPT: str
+    DATABASE_FILE: str = ""
+    MAX_DB_SIZE: float = 0.0
+    MAX_AUDIO_FILE_SIZE_MB: int = 0
+    AUDIO_TRANSCRIPTION_MODEL: str = ""
+    AUDIO_SILENCE_MIN_LEN_MS: int = 0
+    AUDIO_SILENCE_THRESH_DB: int = 0
+    AUDIO_KEEP_SILENCE_MS: int = 0
+    AUDIO_FALLBACK_CHUNK_MIN: int = 0
+    MAX_TOKENS_FOR_ANALYSIS: int = 0
+    CHUNK_SIZE_TOKENS: int = 0
+    DEFAULT_MODEL: str = ""
+    OPENAI_MODELS_LIST: list[str] = []
+    TOGETHER_MODELS_LIST: list[str] = []
+    PLACEHOLDER_USER_INPUT: str = ""
+    PLACEHOLDER_DREAMS_THOUGHTS: str = ""
+    PLACEHOLDER_DREAMS_CONTENT: str = ""
+    CLASSIFIER_PROMPT: str = ""
+    CUSTOM_RETRIEVER_PROMPT: str = ""
+    ANALYZING_PROMPT: str = ""
+    SUMMARIZATION_PROMPT: str = ""
 
 
 settings = ProjectSettings(_env_file=_root / ".env", _env_file_encoding="utf-8")  # pyright: ignore[reportCallIssue]
