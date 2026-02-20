@@ -1,5 +1,4 @@
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
 
 from config import settings
 from agents.models import (
@@ -7,32 +6,7 @@ from agents.models import (
     ClassificationResult,
     SQLQuery,
 )
-
-
-def clean_prompt(prompt: str, placeholder: str) -> str:
-    if placeholder in prompt:
-        return prompt.split(placeholder)[0].strip()
-    return prompt.strip()
-
-
-def get_model(model_name: str = settings.DEFAULT_MODEL):
-    if model_name in settings.TOGETHER_MODELS_LIST:
-        return OpenAIModel(
-            model_name,
-            base_url="https://api.together.xyz/v1",
-            api_key=settings.TOGETHER_API_KEY,
-        )
-
-    if model_name in settings.OPENAI_MODELS_LIST:
-        return OpenAIModel(
-            model_name,
-            api_key=settings.OPENAI_API_KEY,
-        )
-
-    return OpenAIModel(
-        model_name,
-        api_key=settings.OPENAI_API_KEY,
-    )
+from agents.utils import clean_prompt, get_model
 
 
 def create_classification_agent(

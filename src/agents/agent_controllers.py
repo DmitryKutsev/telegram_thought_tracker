@@ -12,7 +12,7 @@ from agents.agents import (
     create_summarization_agent,
 )
 from config import settings
-from utils import chunk_text
+from agents.utils import chunk_text
 
 
 class LlmController:
