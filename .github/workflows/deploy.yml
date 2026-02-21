@@ -11,19 +11,55 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare SSH key
+      - name: Validate deploy secrets
+        env:
+          DO_HOST: ${{ secrets.DO_HOST }}
+          DO_USER: ${{ secrets.DO_USER }}
+          DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}
         run: |
+          set -euo pipefail
+          [ -n "$DO_HOST" ]
+          [ -n "$DO_USER" ]
+          [ -n "$DO_SSH_KEY" ]
+
+      - name: Native SSH handshake proof
+        env:
+          DO_HOST: ${{ secrets.DO_HOST }}
+          DO_USER: ${{ secrets.DO_USER }}
+          DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}
+        run: |
+          set -euo pipefail
           install -m 700 -d ~/.ssh
-          printf '%b' '${{ secrets.DO_SSH_KEY }}' | tr -d '\r' > ~/.ssh/do_ssh_key
+          printf '%s\n' "$DO_SSH_KEY" > ~/.ssh/do_ssh_key
           chmod 600 ~/.ssh/do_ssh_key
+          ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
+            -i ~/.ssh/do_ssh_key "$DO_USER@$DO_HOST" \
+            'echo native_connected_to=$(hostname); echo native_remote_user=$(whoami)'
+
+      - name: Verify SSH connectivity
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
+          timeout: 30s
+          command_timeout: 60s
+          script: |
+            set -euo pipefail
+            echo "connected_to=$(hostname)"
+            echo "remote_user=$(whoami)"
 
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          key_path: ~/.ssh/do_ssh_key
+          key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
+          timeout: 30s
+          command_timeout: 10m
           script: |
             set -euo pipefail
             cd ~/telegram_thought_tracker
