@@ -11,16 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to droplet
-        uses: appleboy/ssh-action@v1
+        uses: digitalocean/app_action/deploy@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
-          script_stop: true
           script: |
             set -euo pipefail
-            cd ~/telegram_thought_tracker
+            cd telegram_thought_tracker/
             git fetch origin
             git reset --hard origin/main
             docker compose up --build -d
+            bash run.sh
