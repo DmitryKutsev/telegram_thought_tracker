@@ -1,11 +1,14 @@
 name: Deploy
 
 on:
-  push:
+  pull_request:
     branches: [main]
+    types: [closed]
+  workflow_dispatch:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to droplet
@@ -15,7 +18,7 @@ jobs:
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd ~/telegram_thought_tracker
-            git pull origin main
-            # docker compose up --build -d
+            git fetch --all --prune
             bash run.sh
