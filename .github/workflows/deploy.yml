@@ -11,45 +11,14 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Validate deploy secrets
-        env:
-          DO_HOST: ${{ secrets.DO_HOST }}
-          DO_USER: ${{ secrets.DO_USER }}
-          DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          [ -n "$DO_HOST" ]
-          [ -n "$DO_USER" ]
-          [ -n "$DO_SSH_KEY" ]
-
-      - name: Native SSH handshake proof
-        env:
-          DO_HOST: ${{ secrets.DO_HOST }}
-          DO_USER: ${{ secrets.DO_USER }}
-          DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$DO_SSH_KEY" > ~/.ssh/do_ssh_key
-          chmod 600 ~/.ssh/do_ssh_key
-          ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
-            -i ~/.ssh/do_ssh_key "$DO_USER@$DO_HOST" \
-            'echo native_connected_to=$(hostname); echo native_remote_user=$(whoami)'
-
-      - name: Verify SSH connectivity
+      - name: Verify SSH connection
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
-          timeout: 30s
-          command_timeout: 60s
-          script: |
-            set -euo pipefail
-            echo "connected_to=$(hostname)"
-            echo "remote_user=$(whoami)"
+          script: echo "SSH OK — connected to $(hostname) as $(whoami) at $(date -u)"
 
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
@@ -58,10 +27,9 @@ jobs:
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
-          timeout: 30s
-          command_timeout: 10m
           script: |
             set -euo pipefail
             cd ~/telegram_thought_tracker
-            git fetch --all --prune
-            bash run.sh
+            git fetch origin
+            git reset --hard origin/main
+            docker compose up --build -d
