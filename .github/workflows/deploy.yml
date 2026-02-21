@@ -1,21 +1,31 @@
 name: Deploy
 
 on:
-  push:
+  pull_request:
     branches: [main]
+    types: [closed]
+  workflow_dispatch:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
+      - name: Prepare SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%b' '${{ secrets.DO_SSH_KEY }}' | tr -d '\r' > ~/.ssh/do_ssh_key
+          chmod 600 ~/.ssh/do_ssh_key
+
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
+          key_path: ~/.ssh/do_ssh_key
+          script_stop: true
           script: |
+            set -euo pipefail
             cd ~/telegram_thought_tracker
-            git pull origin main
-            # docker compose up --build -d
+            git fetch --all --prune
             bash run.sh
