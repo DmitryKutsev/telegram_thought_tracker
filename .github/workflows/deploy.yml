@@ -3,24 +3,22 @@ name: Deploy
 on:
   pull_request:
     branches: [main]
-    types: [closed]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to droplet
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USER }}
-          script_stop: true
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
             set -euo pipefail
-            cd ~/telegram_thought_tracker
+            cd telegram_thought_tracker/
             git fetch origin
             git reset --hard origin/main
-            docker compose up --build -d
+            systemctl restart telegram_thought_tracker.service
