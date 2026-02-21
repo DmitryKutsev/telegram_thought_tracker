@@ -5,7 +5,7 @@ CONFIG_FILE ?= config.yaml
 help:
 	@echo "Available targets:"
 	@echo "  make install      - Install uv (if needed) and sync Python dependencies"
-	@echo "  make run          - Run the Telegram bot in the local environment"
+	@echo "  make run          - Update uv and run the Telegram bot in the local environment"
 	@echo "  make run-docker   - Build and run the Telegram bot using Docker Compose"
 	@echo "  make docker-build - Build the Docker image"
 	@echo "  make docker-up    - Start services with docker compose"
@@ -18,6 +18,7 @@ install:
 
 run:
 	@test -f $(CONFIG_FILE) || (echo "Missing $(CONFIG_FILE). Copy config_example.yaml to $(CONFIG_FILE) first." && exit 1)
+	python -m pip install --upgrade uv
 	uv run python src/main.py
 
 run-docker: docker-build docker-up
