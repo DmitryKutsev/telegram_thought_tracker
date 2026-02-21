@@ -20,7 +20,7 @@ jobs:
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
         with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN}
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
