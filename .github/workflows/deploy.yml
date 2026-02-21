@@ -8,14 +8,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify SSH connection
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
+          script: echo "SSH OK — connected to $(hostname) as $(whoami) at $(date -u)"
+
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
           script: |
             cd ~/telegram_thought_tracker
-            git pull origin main
-            # docker compose up --build -d
-            bash run.sh
+            git fetch origin
+            git reset --hard origin/main
+            docker compose up --build -d
