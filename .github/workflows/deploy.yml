@@ -23,6 +23,7 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key_path: ~/.ssh/do_ssh_key
+          script_stop: true
           script: |
             set -euo pipefail
             cd ~/telegram_thought_tracker
