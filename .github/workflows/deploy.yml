@@ -21,4 +21,4 @@ jobs:
             cd telegram_thought_tracker/
             git fetch origin
             git reset --hard origin/main
-            bash run.sh
+            systemctl restart telegram_thought_tracker.service
