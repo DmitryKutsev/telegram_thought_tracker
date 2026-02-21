@@ -1,0 +1,1 @@
+Find rules in the /home/dima/dima/repos/telegram_thought_tracker/.claude/rules path
