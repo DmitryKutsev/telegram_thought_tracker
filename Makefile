@@ -1,7 +1,5 @@
 .PHONY: help install run-local run-docker docker-build docker-up docker-down clean
 
-UV ?= uv
-PYTHON ?= python
 CONFIG_FILE ?= config.yaml
 
 help:
@@ -15,11 +13,11 @@ help:
 	@echo "  make clean        - Remove runtime cache files"
 
 install:
-	$(UV) sync --frozen --no-dev
+	uv sync --frozen --no-dev
 
 run-local:
 	@test -f $(CONFIG_FILE) || (echo "Missing $(CONFIG_FILE). Copy config_example.yaml to $(CONFIG_FILE) first." && exit 1)
-	$(UV) run $(PYTHON) src/main.py
+	uv run python src/main.py
 
 run-docker: docker-build docker-up
 
