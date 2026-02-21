@@ -21,5 +21,4 @@ jobs:
             cd telegram_thought_tracker/
             git fetch origin
             git reset --hard origin/main
-            docker compose up --build -d
             bash run.sh
