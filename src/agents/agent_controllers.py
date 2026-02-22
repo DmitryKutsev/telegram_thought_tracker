@@ -50,62 +50,31 @@ class LlmController:
 
     async def analyze_dreams_or_thoughts(self, content: str) -> str:
         max_tokens_threshold = int(settings.MAX_TOKENS_FOR_ANALYSIS * 0.7)
-        test_chunks = chunk_text(content, max_tokens_threshold, self.model_name)
-
-        print(
-            f"Content splits into {len(test_chunks)} chunk(s) at threshold {max_tokens_threshold} tokens"
-        )
-
-        if len(test_chunks) == 1:
-            try:
-                result = await self.analysis_agent.run(content)
-                if hasattr(result, "data") and hasattr(result.data, "analysis"):
-                    return result.data.analysis
-                return str(result.data) if hasattr(result, "data") else str(result)
-            except Exception as e:
-                print(f"Direct analysis failed, falling back to chunking: {e}")
 
         chunk_size = min(settings.CHUNK_SIZE_TOKENS, max_tokens_threshold // 2)
-        print(f"Chunking content into chunks of size: {chunk_size} tokens")
+        logger.info(f"Chunking content into chunks of size: {chunk_size} tokens")
         chunks = chunk_text(content, chunk_size, self.model_name)
-
-        if len(chunks) > 5:
-            chunks = chunks[:5]
-            print(f"Limited to 5 chunks (had {len(chunks)} chunks)")
 
         summaries = []
         for i, chunk in enumerate(chunks):
             try:
-                chunk_test = chunk_text(chunk, chunk_size, self.model_name)
-                chunk_count = len(chunk_test)
-                print(
-                    f"Summarizing chunk {i + 1}/{len(chunks)} (splits into {chunk_count} sub-chunks)"
-                )
                 summary = await self.summarize_dreams(chunk)
                 summaries.append(f"### Summary {i + 1} ###\n{summary}")
 
             except Exception as e:
-                print(f"Error summarizing chunk {i + 1}: {e}")
-                chunk_test = chunk_text(chunk, chunk_size, self.model_name)
-                if len(chunk_test) > 1:
-                    truncated = chunk[: chunk_size * 4]
-                    summaries.append(
-                        f"### Summary {i + 1} (truncated) ###\n{truncated}"
-                    )
-                else:
-                    summaries.append(f"### Summary {i + 1} ###\n{chunk[:500]}...")
+                logger.info(f"Error summarizing chunk {i + 1}: {e}")
 
         all_summaries = "\n\n".join(summaries)
         summary_chunks = chunk_text(
             all_summaries, max_tokens_threshold, self.model_name
         )
-        print(
+        logger.info(
             f"Total summaries split into {len(summary_chunks)} chunk(s) at threshold {max_tokens_threshold} tokens"
         )
 
         if len(summary_chunks) > 1:
             all_summaries = summary_chunks[0]
-            print("Truncated summaries to fit in one chunk")
+            logger.info("Truncated summaries to fit in one chunk")
 
         try:
             result = await self.analysis_agent.run(all_summaries)
@@ -113,7 +82,7 @@ class LlmController:
                 return result.data.analysis
             return str(result.data) if hasattr(result, "data") else str(result)
         except Exception as e:
-            print(f"Analysis failed after chunking: {e}")
+            logger.info(f"Analysis failed after chunking: {e}")
             return (
                 f"Analysis completed but encountered formatting issues. "
                 f"Found {len(chunks)} chunks of content. Error: {str(e)}"
