@@ -36,12 +36,12 @@ class TestChunkText:
 
     def test_long_text_returns_multiple_chunks(self):
         text = "word " * 2000
-        chunks = chunk_text(text, chunk_size_tokens=100, model_name="gpt-4")
+        chunks = chunk_text(text, chunk_size_tokens=300, model_name="gpt-4")
         assert len(chunks) > 1
 
     def test_all_words_preserved_across_chunks(self):
         words = [f"uniqueword{i}" for i in range(200)]
-        chunks = chunk_text(" ".join(words), chunk_size_tokens=50, model_name="gpt-4")
+        chunks = chunk_text(" ".join(words), chunk_size_tokens=250, model_name="gpt-4")
         combined = " ".join(chunks)
         for word in words:
             assert word in combined

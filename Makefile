@@ -20,8 +20,6 @@ install:
 	uv sync --frozen --no-dev
 
 test:
-	@command -v uv >/dev/null 2>&1 || python -m pip install uv
-	uv sync --frozen --group dev
 	uv run pytest
 
 run:
