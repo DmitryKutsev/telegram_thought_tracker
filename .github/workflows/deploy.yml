@@ -15,10 +15,12 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --only-dev
 
       - name: Run tests
-        run: uv run pytest -v
+        run: |
+          cp config_example.yaml config.yaml
+          uv run pytest -v
 
   deploy:
     needs: test
