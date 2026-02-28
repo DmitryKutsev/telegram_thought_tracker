@@ -18,7 +18,11 @@ jobs:
         run: uv sync --only-dev
 
       - name: Create test config
-        run: cp ${{ github.workspace }}/config_example.yaml ${{ github.workspace }}/config.yaml
+        run: |
+          echo "Workspace: ${{ github.workspace }}"
+          ls -la ${{ github.workspace }}/config_example.yaml || echo "ERROR: config_example.yaml not found"
+          cp ${{ github.workspace }}/config_example.yaml ${{ github.workspace }}/config.yaml
+          ls -la ${{ github.workspace }}/config.yaml
 
       - name: Run tests
         run: uv run pytest -v
