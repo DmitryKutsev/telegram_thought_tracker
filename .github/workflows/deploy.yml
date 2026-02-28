@@ -17,6 +17,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --only-dev
 
+      - name: Create test config
+        run: cp config_example.yaml config.yaml
+
       - name: Run tests
         run: uv run pytest -v
 
